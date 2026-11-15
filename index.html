@@ -62,7 +62,8 @@ body{display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-
 </style></head><body>
 <div class="bar" id="top">
 <button class="b" id="nB">➕ หน้าเปล่า</button><button class="b" id="nI">🖼️ แทรกภาพ</button><button class="b" id="nC">📷 กล้อง</button><span class="sep"></span>
-<button class="b on" id="bgW" title="พื้นหลังขาว">⬜</button><button class="b" id="bgK" title="พื้นหลังดำ">⬛</button><span class="sep"></span>
+<button class="b" id="bgW" title="พื้นหลังขาว">⬜</button><button class="b on" id="bgK" title="พื้นหลังดำ">⬛</button><span class="sep"></span>
+<button class="b" id="rL" title="หมุนซ้าย">↺ ซ้าย</button><button class="b" id="rR" title="หมุนขวา">↻ ขวา</button><span class="sep"></span>
 <button class="b" id="dP" title="ลบหน้านี้">🗑️ ลบหน้า</button><button class="b" id="sv" title="บันทึกหน้านี้">💾 หน้านี้</button><button class="b" id="svA" title="บันทึกทุกหน้า">💾 ทั้งหมด</button>
 </div>
 <div id="mid"><div id="pg"></div>
@@ -166,7 +167,7 @@ function mkBox(it){const b=document.createElement('div');b.className='tx';b.data
 const renderTexts=()=>{tl.innerHTML='';items.forEach(i=>{if(i.k==='t')mkBox(i)})};
 
 /* ---------- หน้า ---------- */
-function newPage(o){const p=Object.assign({id:++pid,w:1600,h:1000,bg:P?P.bg:'#ffffff',img:null,items:[],hist:[]},o);pages.push(p);return p}
+function newPage(o){const p=Object.assign({id:++pid,w:1600,h:1000,bg:'#000000',img:null,items:[],hist:[]},o);pages.push(p);return p}
 function showPage(i){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
  if(P){P.items=items;P.hist=hist;P.view=view;P.th=null}
  P=pages[i];items=P.items;hist=P.hist;select(null);st.cur=null;
@@ -210,6 +211,16 @@ $('fImg').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 $('fCam').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 $('bgW').onclick=()=>{P.bg='#ffffff';paintBg()};
 $('bgK').onclick=()=>{P.bg='#000000';paintBg()};
+async function rotatePage(dir){const p=P,W=p.w,H=p.h;if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+ p.items=items;
+ if(p.img){const o=document.createElement('canvas');o.width=H;o.height=W;const x=o.getContext('2d');x.translate(dir>0?H:0,dir>0?0:W);x.rotate(dir*Math.PI/2);x.drawImage(p.img,0,0,W,H);p.img=await loadImg(o.toDataURL('image/jpeg',.95))}
+ p.items=p.items.map(i=>i.k==='s'?Object.assign({},i,{p:i.p.map(q=>dir>0?[H-q[1],q[0]]:[q[1],W-q[0]])}):
+  Object.assign({},i,dir>0?{x:1-i.y,y:i.x,f:i.f*W/H}:{x:i.y,y:1-i.x,f:i.f*W/H}));
+ p.w=H;p.h=W;p.hist=[];p.view=null;p.th=null;
+ if(P!==p){chips();return}
+ items=p.items;hist=p.hist;select(null);cv.width=p.w;cv.height=p.h;redraw();renderTexts();
+ if(p.img)im.src=p.img.src;layout(true);chips()}
+$('rL').onclick=()=>rotatePage(-1);$('rR').onclick=()=>rotatePage(1);
 $('dP').onclick=async()=>{if(!await ask('ลบหน้านี้?','หน้า '+(curIdx()+1)+' และสิ่งที่วาดไว้จะหายไป','ลบ'))return;
  const i=curIdx();pages.splice(i,1);P=null;if(!pages.length)blankPage();else showPage(Math.min(i,pages.length-1))};
 
