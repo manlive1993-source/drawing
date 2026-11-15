@@ -17,14 +17,20 @@ body{display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-
 .bar>:first-child{margin-left:auto}.bar>:last-child{margin-right:auto}
 .b{flex:none;min-width:44px;height:44px;border:0;border-radius:12px;background:#334155;color:#fff;font:600 14px sans-serif;padding:0 12px;cursor:pointer;white-space:nowrap}
 .b.on{background:#2563eb}
-.pc{height:34px;min-width:34px;font-size:13px;background:#1e293b;color:#cbd5e1;border-radius:10px}
-.pc.on{background:#2563eb;color:#fff}
+#pg{flex:none;position:relative;width:92px;overflow-y:auto;padding:8px 6px;background:#0f172a;border-right:1px solid #1e293b;display:flex;flex-direction:column;gap:10px;touch-action:none;scrollbar-width:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#pg::-webkit-scrollbar{display:none}
+.th{flex:none;position:relative;border:2px solid #334155;border-radius:8px;overflow:hidden;cursor:pointer;touch-action:none;background:#1e293b}
+.th.on{border-color:#3b82f6}
+.th img{display:block;width:100%;pointer-events:none;-webkit-user-drag:none}
+.th span{position:absolute;left:3px;bottom:3px;min-width:18px;padding:0 5px;height:18px;border-radius:9px;background:rgba(15,23,42,.85);color:#fff;font:600 11px/18px sans-serif;text-align:center}
+.th.drag{z-index:5;opacity:.9;box-shadow:0 8px 24px rgba(0,0,0,.6);border-color:#facc15}
+#mid{flex:1;display:flex;min-height:0}
 .col{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid #64748b;padding:0;cursor:pointer}
 .col.sel{outline:3px solid #fff;outline-offset:1px}
 .sz{flex:none;width:40px;height:40px;border:0;border-radius:10px;background:#334155;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
 .sz.sel{background:#2563eb}.sz i{background:#fff;border-radius:50%;display:block}
 .sep{flex:none;width:1px;height:28px;background:#475569}
-#c{flex:1;position:relative;overflow:hidden;touch-action:none;background:#fff}
+#c{flex:1;min-width:0;position:relative;overflow:hidden;touch-action:none;background:#fff}
 #stg{position:absolute;left:0;top:0;transform-origin:0 0;outline:1px solid #64748b;will-change:transform}
 #im{width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
 #cv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;pointer-events:none}
@@ -59,8 +65,8 @@ body{display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-
 <button class="b on" id="bgW" title="พื้นหลังขาว">⬜</button><button class="b" id="bgK" title="พื้นหลังดำ">⬛</button><span class="sep"></span>
 <button class="b" id="dP" title="ลบหน้านี้">🗑️ ลบหน้า</button><button class="b" id="sv" title="บันทึกหน้านี้">💾 หน้านี้</button><button class="b" id="svA" title="บันทึกทุกหน้า">💾 ทั้งหมด</button>
 </div>
-<div class="bar" id="pg" style="padding:0 12px 6px"></div>
-<div id="c"><div id="stg"><img id="im" alt=""><canvas id="cv"></canvas><div id="tl"></div></div></div>
+<div id="mid"><div id="pg"></div>
+<div id="c"><div id="stg"><img id="im" alt=""><canvas id="cv"></canvas><div id="tl"></div></div></div></div>
 <div id="tt"><button class="b" id="tM">A−</button><button class="b" id="tP">A+</button><button class="b" id="tE">✏️ แก้</button><button class="b" id="tC">📋 คัดลอก</button><button class="b" id="tD" style="background:#b91c1c">🗑️ ลบ</button></div>
 <div class="bar" id="tb">
 <button class="b" id="bPen">✏️ วาด</button><button class="b" id="bTx">🔤 ข้อความ</button><span class="sep"></span>
@@ -162,14 +168,34 @@ const renderTexts=()=>{tl.innerHTML='';items.forEach(i=>{if(i.k==='t')mkBox(i)})
 /* ---------- หน้า ---------- */
 function newPage(o){const p=Object.assign({id:++pid,w:1600,h:1000,bg:P?P.bg:'#ffffff',img:null,items:[],hist:[]},o);pages.push(p);return p}
 function showPage(i){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
- if(P){P.items=items;P.hist=hist;P.view=view}
+ if(P){P.items=items;P.hist=hist;P.view=view;P.th=null}
  P=pages[i];items=P.items;hist=P.hist;select(null);st.cur=null;
  cv.width=P.w;cv.height=P.h;redraw();renderTexts();
  if(P.img){im.src=P.img.src;im.style.display='block'}else{im.removeAttribute('src');im.style.display='none'}
  paintBg();layout(true);if(P.view){view=P.view;applyView()}chips()}
 function paintBg(){stg.style.background=P.bg;c.style.background=P.bg;$('bgW').classList.toggle('on',P.bg==='#ffffff');$('bgK').classList.toggle('on',P.bg==='#000000')}
-function chips(){const g=$('pg');g.innerHTML='';pages.forEach((p,i)=>{const b=document.createElement('button');b.className='b pc'+(p===P?' on':'');b.textContent=(p.img?'🖼️ ':'')+(i+1);b.onclick=()=>showPage(i);g.appendChild(b)});
- const a=g.querySelector('.on');if(a)a.scrollIntoView({inline:'center',block:'nearest'})}
+function mkThumb(p){return renderPage(p,Math.min(1,160/p.w)).toDataURL('image/jpeg',.7)}
+function chips(){const g=$('pg');g.innerHTML='';if(P)P.items=items;
+ pages.forEach((p,i)=>{if(!p.th)p.th=mkThumb(p);const d=document.createElement('div');d.className='th'+(p===P?' on':'');d.dataset.id=p.id;
+  const m=document.createElement('img');m.src=p.th;const n=document.createElement('span');n.textContent=i+1;d.append(m,n);g.appendChild(d);bindTh(d)});
+ const a=g.querySelector('.on');if(a){if(a.offsetTop<g.scrollTop)g.scrollTop=a.offsetTop-8;else if(a.offsetTop+a.offsetHeight>g.scrollTop+g.clientHeight)g.scrollTop=a.offsetTop+a.offsetHeight-g.clientHeight+8}}
+/* แตะ = เปิดหน้า · กดค้างแล้วลาก = สลับลำดับ · ลากทันที = เลื่อนรายการ */
+function bindTh(d){d.oncontextmenu=e=>e.preventDefault();
+ d.addEventListener('pointerdown',e=>{const g=$('pg');const sx=e.clientX,sy=e.clientY;let ly=sy,drag=false,moved=false;
+  try{d.setPointerCapture(e.pointerId)}catch(_){}
+  const tm=setTimeout(()=>{if(moved)return;drag=true;d.classList.add('drag');if(navigator.vibrate)navigator.vibrate(30)},350);
+  const place=y=>{const sibs=[...g.children].filter(x=>x!==d);let before=null;
+   for(const x of sibs){const r=x.getBoundingClientRect();if(y<r.top+r.height/2){before=x;break}}
+   if(before!==d.nextSibling)g.insertBefore(d,before);
+   d.style.transform='none';const r=d.getBoundingClientRect();d.style.transform='translateY('+(y-(r.top+r.height/2))+'px)'};
+  const mv=ev=>{if(drag){ev.preventDefault();const gr=g.getBoundingClientRect();
+    if(ev.clientY<gr.top+40)g.scrollTop-=10;else if(ev.clientY>gr.bottom-40)g.scrollTop+=10;place(ev.clientY);return}
+   if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>8){moved=true;clearTimeout(tm)}
+   if(moved)g.scrollTop-=ev.clientY-ly;ly=ev.clientY};
+  const end=ev=>{clearTimeout(tm);d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',end);d.removeEventListener('pointercancel',end);
+   if(drag){d.classList.remove('drag');d.style.transform='';const ord=[...g.children].map(x=>+x.dataset.id);pages.sort((a,b)=>ord.indexOf(a.id)-ord.indexOf(b.id));chips()}
+   else if(!moved&&ev.type==='pointerup')showPage(pages.findIndex(p=>p.id===+d.dataset.id))};
+  d.addEventListener('pointermove',mv);d.addEventListener('pointerup',end);d.addEventListener('pointercancel',end)})}
 const curIdx=()=>pages.indexOf(P);
 function blankPage(){const h=Math.round(clamp(1600*c.clientHeight/Math.max(1,c.clientWidth),900,2400));newPage({w:1600,h});showPage(pages.length-1)}
 async function fileToUrl(f,max=2400){let b;try{b=await createImageBitmap(f,{imageOrientation:'from-image'})}catch(e){b=await new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=URL.createObjectURL(f)})}
@@ -223,14 +249,17 @@ $('bCl').onclick=async()=>{if(!items.length){toast('ยังไม่มีเ�
 addEventListener('keydown',e=>{if((e.key==='Delete'||e.key==='Backspace')&&st.sel&&!(document.activeElement&&document.activeElement.isContentEditable))removeText(st.sel)});
 
 /* ---------- บันทึกรูป ---------- */
-function renderPage(p){const o=document.createElement('canvas');o.width=p.w;o.height=p.h;const x=o.getContext('2d');x.fillStyle=p.bg;x.fillRect(0,0,o.width,o.height);if(p.img)x.drawImage(p.img,0,0,p.w,p.h);strokes(x,p.items);
- p.items.forEach(it=>{if(it.k!=='t')return;const fs=it.f*o.width;x.font='600 '+fs+'px sans-serif';x.fillStyle=it.col;x.textBaseline='top';
-  String(it.text).split('\n').forEach((l,i)=>x.fillText(l,it.x*o.width,it.y*o.height+i*1.25*fs+.125*fs))});return o}
+function renderPage(p,sc=1){const o=document.createElement('canvas');o.width=Math.round(p.w*sc);o.height=Math.round(p.h*sc);const x=o.getContext('2d');x.setTransform(sc,0,0,sc,0,0);
+ x.fillStyle=p.bg;x.fillRect(0,0,p.w,p.h);if(p.img)x.drawImage(p.img,0,0,p.w,p.h);strokes(x,p.items);
+ p.items.forEach(it=>{if(it.k!=='t')return;const fs=it.f*p.w;x.font='600 '+fs+'px sans-serif';x.fillStyle=it.col;x.textBaseline='top';
+  String(it.text).split('\n').forEach((l,i)=>x.fillText(l,it.x*p.w,it.y*p.h+i*1.25*fs+.125*fs))});return o}
 const dl=(o,n)=>new Promise(r=>o.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);r()},'image/jpeg',.92));
 const flush=()=>{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();P.items=items;P.hist=hist};
 $('sv').onclick=async()=>{flush();await dl(renderPage(P),'หน้า'+(curIdx()+1)+'-'+Date.now()+'.jpg');toast('บันทึกรูปแล้ว')};
 $('svA').onclick=async()=>{flush();for(let i=0;i<pages.length;i++){await dl(renderPage(pages[i]),'หน้า'+(i+1)+'-'+Date.now()+'.jpg');await new Promise(r=>setTimeout(r,400))}toast('บันทึก '+pages.length+' หน้าแล้ว')};
 
 if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+const sigOf=()=>P.bg+'|'+items.map(i=>i.k==='s'?i.p.length+i.col:i.text+i.x+i.y+i.f+i.col).join('|');
+setInterval(()=>{if(!P)return;const g=sigOf();if(g===P.sig)return;P.sig=g;P.items=items;P.th=mkThumb(P);const e=$('pg').querySelector('.th.on img');if(e)e.src=P.th},700);
 blankPage();sync();
 </script></body></html>
