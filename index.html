@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>วาดบนภาพ</title>
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0f172a;overflow:hidden;font-family:sans-serif;touch-action:none;overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-inset-top)}
+.bar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0f172a;overflow-x:auto;touch-action:pan-x;scrollbar-width:none}
+.bar::-webkit-scrollbar{display:none}
+#tb{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+.bar>:first-child{margin-left:auto}.bar>:last-child{margin-right:auto}
+.b{flex:none;min-width:44px;height:44px;border:0;border-radius:12px;background:#334155;color:#fff;font:600 14px sans-serif;padding:0 12px;cursor:pointer;white-space:nowrap}
+.b.on{background:#2563eb}
+.pc{height:34px;min-width:34px;font-size:13px;background:#1e293b;color:#cbd5e1;border-radius:10px}
+.pc.on{background:#2563eb;color:#fff}
+.col{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid #64748b;padding:0;cursor:pointer}
+.col.sel{outline:3px solid #fff;outline-offset:1px}
+.sz{flex:none;width:40px;height:40px;border:0;border-radius:10px;background:#334155;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.sz.sel{background:#2563eb}.sz i{background:#fff;border-radius:50%;display:block}
+.sep{flex:none;width:1px;height:28px;background:#475569}
+#c{flex:1;position:relative;overflow:hidden;touch-action:none;background:#fff}
+#stg{position:absolute;left:0;top:0;transform-origin:0 0;outline:1px solid #64748b;will-change:transform}
+#im{width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+#cv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;pointer-events:none}
+#tl{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.tx{position:absolute;pointer-events:auto;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;font-weight:600;line-height:1.25;white-space:pre}
+.tx .tt{display:inline-block;min-width:.6em;outline:none}
+.tx.sel{outline:2px dashed #38bdf8;outline-offset:5px}
+.tx.ed{cursor:text}.tx.ed .tt{user-select:text;-webkit-user-select:text}
+.tx .hd{display:none;position:absolute;right:-20px;bottom:-20px;width:26px;height:26px;border-radius:50%;background:#38bdf8;border:3px solid #fff;cursor:nwse-resize;touch-action:none;transform:scale(var(--iz,1))}
+.tx.sel:not(.ed) .hd{display:block}
+#stg.pm .tx{pointer-events:none}
+#tt{position:fixed;left:50%;transform:translateX(-50%);display:none;gap:8px;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:16px;z-index:6}
+#tt.show{display:flex}
+#dlg,#cam{position:fixed;inset:0;display:none;z-index:20}
+#dlg{align-items:center;justify-content:center;background:rgba(2,6,23,.65);padding:20px}
+#dlg.show{display:flex}
+#dlg .card{width:100%;max-width:330px;background:#1e293b;border:1px solid #334155;border-radius:22px;padding:24px 20px 18px;text-align:center;color:#f1f5f9}
+#dlg h3{margin:0 0 8px}#dlg p{margin:0 0 18px;font-size:14px;color:#94a3b8}
+#dlg .ac{display:flex;gap:10px}#dlg .ac button{flex:1;height:46px;border:0;border-radius:14px;font:600 15px sans-serif;cursor:pointer}
+#cam{background:#000;flex-direction:column}#cam.show{display:flex}
+#vd{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}
+#cb{flex:none;display:flex;align-items:center;justify-content:space-around;padding:14px 10px calc(14px + env(safe-area-inset-bottom));background:#000}
+#sh{width:72px;height:72px;border-radius:50%;border:5px solid #fff;background:#ef4444;cursor:pointer}
+#sh:active{transform:scale(.9)}
+#cn{position:absolute;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:6px 14px;border-radius:999px;font:600 14px sans-serif}
+#fl{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:rgba(30,41,59,.95);color:#f1f5f9;padding:10px 18px;border-radius:999px;font:600 14px sans-serif;opacity:0;pointer-events:none;transition:.25s;z-index:30;white-space:nowrap}
+#toast.show{opacity:1}
+</style></head><body>
+<div class="bar" id="top">
+<button class="b" id="nB">➕ หน้าเปล่า</button><button class="b" id="nI">🖼️ แทรกภาพ</button><button class="b" id="nC">📷 กล้อง</button><span class="sep"></span>
+<button class="b on" id="bgW" title="พื้นหลังขาว">⬜</button><button class="b" id="bgK" title="พื้นหลังดำ">⬛</button><span class="sep"></span>
+<button class="b" id="dP" title="ลบหน้านี้">🗑️ ลบหน้า</button><button class="b" id="sv" title="บันทึกหน้านี้">💾 หน้านี้</button><button class="b" id="svA" title="บันทึกทุกหน้า">💾 ทั้งหมด</button>
+</div>
+<div class="bar" id="pg" style="padding:0 12px 6px"></div>
+<div id="c"><div id="stg"><img id="im" alt=""><canvas id="cv"></canvas><div id="tl"></div></div></div>
+<div id="tt"><button class="b" id="tM">A−</button><button class="b" id="tP">A+</button><button class="b" id="tE">✏️ แก้</button><button class="b" id="tC">📋 คัดลอก</button><button class="b" id="tD" style="background:#b91c1c">🗑️ ลบ</button></div>
+<div class="bar" id="tb">
+<button class="b" id="bPen">✏️ วาด</button><button class="b" id="bTx">🔤 ข้อความ</button><span class="sep"></span>
+<button class="col sel" data-c="#ef4444" style="background:#ef4444"></button><button class="col" data-c="#facc15" style="background:#facc15"></button><button class="col" data-c="#22c55e" style="background:#22c55e"></button><button class="col" data-c="#3b82f6" style="background:#3b82f6"></button><button class="col" data-c="#000000" style="background:#000"></button><button class="col" data-c="#ffffff" style="background:#fff"></button><span class="sep"></span>
+<button class="sz" data-s="3"><i style="width:4px;height:4px"></i></button><button class="sz sel" data-s="6"><i style="width:9px;height:9px"></i></button><button class="sz" data-s="12"><i style="width:16px;height:16px"></i></button><span class="sep"></span>
+<button class="b" id="bZo">➖</button><button class="b" id="bZl" style="min-width:64px">100%</button><button class="b" id="bZi">➕</button><span class="sep"></span>
+<button class="b" id="bEr" title="ยางลบ">🧽</button><button class="b" id="bUn" title="ย้อนกลับ">↩️</button><button class="b" id="bCl" title="ล้างหน้านี้">🗑️</button>
+</div>
+<div id="dlg"><div class="card"><h3 id="dT"></h3><p id="dM"></p><div class="ac"><button id="dNo" style="background:#334155;color:#e2e8f0">ยกเลิก</button><button id="dYes" style="background:#ef4444;color:#fff"></button></div></div></div>
+<div id="cam"><video id="vd" autoplay playsinline muted></video><span id="cn">ถ่ายแล้ว 0 ภาพ</span><div id="cb"><button class="b" id="cFl">🔄 สลับกล้อง</button><button id="sh" aria-label="ถ่ายภาพ"></button><button class="b" id="cX" style="background:#2563eb">✓ เสร็จ</button></div><div id="fl"></div></div>
+<input type="file" id="fImg" accept="image/*" multiple hidden><input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id),c=$('c'),stg=$('stg'),cv=$('cv'),ctx=cv.getContext('2d'),tl=$('tl'),im=$('im'),ttb=$('tt'),zl=$('bZl');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let pages=[],P=null,items=[],hist=[],bw=1,bh=1,view={z:1,tx:0,ty:0},uid=0,pid=0;
+const st={pen:false,eraser:false,color:'#ef4444',size:6,cur:null,erasing:false,snapped:false,sel:null};
+const toastEl=$('toast');let toastT;
+const toast=m=>{toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),1800)};
+const ask=(t,m,y)=>new Promise(r=>{$('dT').textContent=t;$('dM').textContent=m;$('dYes').textContent=y;$('dlg').classList.add('show');ask.r=r});
+$('dNo').onclick=()=>{$('dlg').classList.remove('show');ask.r(false)};
+$('dYes').onclick=()=>{$('dlg').classList.remove('show');ask.r(true)};
+
+/* ---------- ที่แสดงผล / ซูม ---------- */
+const snap=()=>{hist.push(items.slice());if(hist.length>80)hist.shift()};
+const getItem=id=>items.find(i=>i.id===id),boxOf=id=>tl.querySelector('.tx[data-id="'+id+'"]');
+const cloneItem=id=>{snap();const i=items.findIndex(x=>x.id===id);items[i]=Object.assign({},items[i]);return items[i]};
+function applyView(){stg.style.transform=`translate(${view.tx}px,${view.ty}px) scale(${view.z})`;stg.style.setProperty('--iz',1/view.z);zl.textContent=Math.round(view.z*100)+'%'}
+function fit(){view={z:1,tx:(c.clientWidth-bw)/2,ty:(c.clientHeight-bh)/2};applyView()}
+function layout(refit){if(!P)return;const k=Math.min(c.clientWidth/P.w,c.clientHeight/P.h);bw=P.w*k;bh=P.h*k;stg.style.width=bw+'px';stg.style.height=bh+'px';
+ tl.querySelectorAll('.tx').forEach(b=>{const it=getItem(b.dataset.id);if(it)b.style.fontSize=it.f*bw+'px'});if(refit||view.z===1)fit();else applyView()}
+function zoomAt(nz,px,py){nz=clamp(nz,.5,12);const r=nz/view.z;view.tx=px-(px-view.tx)*r;view.ty=py-(py-view.ty)*r;view.z=nz;applyView()}
+$('bZi').onclick=()=>zoomAt(view.z*1.25,c.clientWidth/2,c.clientHeight/2);
+$('bZo').onclick=()=>zoomAt(view.z/1.25,c.clientWidth/2,c.clientHeight/2);
+zl.onclick=fit;
+c.addEventListener('wheel',e=>{e.preventDefault();const r=c.getBoundingClientRect();zoomAt(view.z*(e.deltaY<0?1.15:1/1.15),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+addEventListener('resize',()=>layout());addEventListener('orientationchange',()=>setTimeout(()=>layout(),250));
+
+/* ---------- 2 นิ้วย่อ/ขยาย + เลื่อน ---------- */
+const ptrs=new Map(),blocked=new Set();let pinch=null,pan=null;
+const rel=p=>{const r=c.getBoundingClientRect();return{x:p.x-r.left,y:p.y-r.top}};
+c.addEventListener('pointerdown',e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(ptrs.size>=2){ptrs.forEach((_,id)=>blocked.add(id));
+  if(st.cur){items=hist.pop()||items;st.cur=null;redraw()}st.erasing=false;pan=null;
+  if(!pinch){const [a,b]=[...ptrs.values()];const m=rel({x:(a.x+b.x)/2,y:(a.y+b.y)/2});pinch={d:Math.max(10,Math.hypot(a.x-b.x,a.y-b.y)),m,v:{...view}}}
+  e.stopPropagation();e.preventDefault()}},true);
+c.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const px=p.x,py=p.y;p.x=e.clientX;p.y=e.clientY;
+ if(pinch&&ptrs.size>=2){const [a,b]=[...ptrs.values()];const m=rel({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  const nz=clamp(pinch.v.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,.5,12),r=nz/pinch.v.z;
+  view.z=nz;view.tx=m.x-(pinch.m.x-pinch.v.tx)*r;view.ty=m.y-(pinch.m.y-pinch.v.ty)*r;applyView();e.stopPropagation();e.preventDefault();return}
+ if(pan&&pan.id===e.pointerId&&!blocked.has(e.pointerId)){view.tx+=e.clientX-px;view.ty+=e.clientY-py;applyView()}},true);
+const up=e=>{ptrs.delete(e.pointerId);blocked.delete(e.pointerId);if(pan&&pan.id===e.pointerId)pan=null;if(ptrs.size<2)pinch=null;if(!ptrs.size)blocked.clear()};
+c.addEventListener('pointerup',up,true);c.addEventListener('pointercancel',up,true);
+c.addEventListener('pointerdown',e=>{if(!st.pen&&ptrs.size===1&&!blocked.has(e.pointerId)){pan={id:e.pointerId};if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();select(null)}});
+
+/* ---------- เส้นวาด ---------- */
+function seg(x,s,a,b){x.save();x.strokeStyle=s.col;x.fillStyle=s.col;x.lineWidth=s.w;x.lineCap='round';x.lineJoin='round';x.beginPath();
+ if(!b){x.arc(a[0],a[1],s.w/2,0,7);x.fill()}else{x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()}x.restore()}
+function strokes(x,list){list.forEach(s=>{if(s.k!=='s')return;if(s.p.length===1)seg(x,s,s.p[0],null);else for(let i=1;i<s.p.length;i++)seg(x,s,s.p[i-1],s.p[i])})}
+function redraw(){ctx.clearRect(0,0,cv.width,cv.height);strokes(ctx,items)}
+const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]};
+const kk=()=>cv.width/cv.getBoundingClientRect().width;
+function distSeg(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l:0;t=clamp(t,0,1);return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
+function hit(s,p,th){const r=th+s.w/2,q=s.p;if(q.length===1)return Math.hypot(p[0]-q[0][0],p[1]-q[0][1])<=r;for(let i=1;i<q.length;i++)if(distSeg(p,q[i-1],q[i])<=r)return true;return false}
+function eraseAt(p){const h=items.filter(s=>s.k==='s'&&hit(s,p,14*kk()));if(!h.length)return;if(!st.snapped){snap();st.snapped=true}items=items.filter(s=>h.indexOf(s)<0);redraw()}
+cv.addEventListener('pointerdown',e=>{if(!st.pen||blocked.has(e.pointerId)||ptrs.size>1)return;e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}
+ if(st.eraser){st.erasing=true;st.snapped=false;eraseAt(pt(e));return}
+ snap();st.cur={k:'s',col:st.color,w:st.size*kk(),p:[pt(e)]};items.push(st.cur);seg(ctx,st.cur,st.cur.p[0],null)});
+cv.addEventListener('pointermove',e=>{if(blocked.has(e.pointerId))return;if(st.erasing){e.preventDefault();eraseAt(pt(e));return}if(!st.cur)return;e.preventDefault();
+ const a=st.cur.p[st.cur.p.length-1],b=pt(e);st.cur.p.push(b);seg(ctx,st.cur,a,b)});
+const endS=()=>{st.cur=null;st.erasing=false};cv.addEventListener('pointerup',endS);cv.addEventListener('pointercancel',endS);
+
+/* ---------- กล่องข้อความ ---------- */
+function select(id){st.sel=id||null;tl.querySelectorAll('.tx').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));ttb.classList.toggle('show',!!id);if(id)ttb.style.bottom=($('tb').offsetHeight+10)+'px'}
+function applyBox(b,it){b.style.left=it.x*100+'%';b.style.top=it.y*100+'%';b.style.color=it.col;b.style.fontSize=it.f*bw+'px'}
+function setProps(id,pr){snap();const i=items.findIndex(x=>x.id===id);if(i<0)return;items[i]=Object.assign({},items[i],pr);const b=boxOf(id);if(b)applyBox(b,items[i])}
+function removeText(id){snap();items=items.filter(x=>x.id!==id);const b=boxOf(id);if(b)b.remove();if(st.sel===id)select(null)}
+function startEdit(id){const b=boxOf(id);if(!b)return;const t=b.querySelector('.tt');b.classList.add('ed');t.contentEditable='true';t.focus();try{document.execCommand('selectAll',false,null)}catch(_){}}
+function endEdit(b,t){t.contentEditable='false';b.classList.remove('ed');const id=b.dataset.id,it=getItem(id);if(!it)return;const txt=t.innerText.replace(/\s+$/,'');if(!txt){removeText(id);return}if(txt!==it.text)setProps(id,{text:txt});t.textContent=txt}
+function mkBox(it){const b=document.createElement('div');b.className='tx';b.dataset.id=it.id;
+ const t=document.createElement('div');t.className='tt';t.textContent=it.text;const hd=document.createElement('div');hd.className='hd';b.append(t,hd);applyBox(b,it);tl.appendChild(b);
+ t.addEventListener('blur',()=>endEdit(b,t));t.addEventListener('keydown',e=>{if(e.key==='Escape')t.blur()});
+ t.addEventListener('paste',e=>{e.preventDefault();document.execCommand('insertText',false,(e.clipboardData||window.clipboardData).getData('text'))});
+ b.addEventListener('pointerdown',e=>{if(e.target===hd||b.classList.contains('ed')||ptrs.size>1||blocked.has(e.pointerId))return;e.preventDefault();e.stopPropagation();
+  const id=b.dataset.id,was=st.sel===id;select(id);let it0=getItem(id);const sx=e.clientX,sy=e.clientY,x0=it0.x,y0=it0.y,pid_=e.pointerId;let moved=false,cl=false;
+  try{b.setPointerCapture(e.pointerId)}catch(_){}
+  const mv=ev=>{if(blocked.has(pid_))return;const dx=ev.clientX-sx,dy=ev.clientY-sy;if(!moved&&Math.hypot(dx,dy)<5)return;moved=true;if(!cl){cl=true;it0=cloneItem(id)}
+   const r=stg.getBoundingClientRect();it0.x=clamp(x0+dx/r.width,-.1,1);it0.y=clamp(y0+dy/r.height,-.05,1);applyBox(b,it0)};
+  const u=()=>{b.removeEventListener('pointermove',mv);b.removeEventListener('pointerup',u);b.removeEventListener('pointercancel',u);if(!moved&&was&&!blocked.has(pid_))startEdit(id)};
+  b.addEventListener('pointermove',mv);b.addEventListener('pointerup',u);b.addEventListener('pointercancel',u)});
+ hd.addEventListener('pointerdown',e=>{if(ptrs.size>1)return;e.preventDefault();e.stopPropagation();const id=b.dataset.id;let it0=getItem(id);const r=b.getBoundingClientRect(),L=r.left,T=r.top;
+  const d0=Math.max(10,Math.hypot(e.clientX-L,e.clientY-T)),f0=it0.f;let cl=false;try{hd.setPointerCapture(e.pointerId)}catch(_){}
+  const mv=ev=>{if(!cl){cl=true;it0=cloneItem(id)}it0.f=clamp(f0*Math.hypot(ev.clientX-L,ev.clientY-T)/d0,.012,.4);b.style.fontSize=it0.f*bw+'px'};
+  const u=()=>{hd.removeEventListener('pointermove',mv);hd.removeEventListener('pointerup',u);hd.removeEventListener('pointercancel',u)};
+  hd.addEventListener('pointermove',mv);hd.addEventListener('pointerup',u);hd.addEventListener('pointercancel',u)});
+ return b}
+const renderTexts=()=>{tl.innerHTML='';items.forEach(i=>{if(i.k==='t')mkBox(i)})};
+
+/* ---------- หน้า ---------- */
+function newPage(o){const p=Object.assign({id:++pid,w:1600,h:1000,bg:P?P.bg:'#ffffff',img:null,items:[],hist:[]},o);pages.push(p);return p}
+function showPage(i){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+ if(P){P.items=items;P.hist=hist;P.view=view}
+ P=pages[i];items=P.items;hist=P.hist;select(null);st.cur=null;
+ cv.width=P.w;cv.height=P.h;redraw();renderTexts();
+ if(P.img){im.src=P.img.src;im.style.display='block'}else{im.removeAttribute('src');im.style.display='none'}
+ paintBg();layout(true);if(P.view){view=P.view;applyView()}chips()}
+function paintBg(){stg.style.background=P.bg;c.style.background=P.bg;$('bgW').classList.toggle('on',P.bg==='#ffffff');$('bgK').classList.toggle('on',P.bg==='#000000')}
+function chips(){const g=$('pg');g.innerHTML='';pages.forEach((p,i)=>{const b=document.createElement('button');b.className='b pc'+(p===P?' on':'');b.textContent=(p.img?'🖼️ ':'')+(i+1);b.onclick=()=>showPage(i);g.appendChild(b)});
+ const a=g.querySelector('.on');if(a)a.scrollIntoView({inline:'center',block:'nearest'})}
+const curIdx=()=>pages.indexOf(P);
+function blankPage(){const h=Math.round(clamp(1600*c.clientHeight/Math.max(1,c.clientWidth),900,2400));newPage({w:1600,h});showPage(pages.length-1)}
+async function fileToUrl(f,max=2400){let b;try{b=await createImageBitmap(f,{imageOrientation:'from-image'})}catch(e){b=await new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=URL.createObjectURL(f)})}
+ const w=b.width||b.naturalWidth,h=b.height||b.naturalHeight,k=Math.min(1,max/Math.max(w,h)),o=document.createElement('canvas');o.width=Math.round(w*k);o.height=Math.round(h*k);o.getContext('2d').drawImage(b,0,0,o.width,o.height);return o.toDataURL('image/jpeg',.9)}
+const loadImg=u=>new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=u});
+async function imgPage(url,show=true){const img=await loadImg(url);newPage({w:img.naturalWidth,h:img.naturalHeight,img});if(show)showPage(pages.length-1);else chips()}
+async function addFiles(files){const l=[...files];if(!l.length)return;toast('กำลังเพิ่มภาพ...');
+ try{for(const f of l)await imgPage(await fileToUrl(f));toast('เพิ่ม '+l.length+' ภาพแล้ว')}catch(e){toast('เปิดภาพไม่สำเร็จ')}}
+$('nB').onclick=blankPage;
+$('nI').onclick=()=>$('fImg').click();
+$('fImg').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+$('fCam').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+$('bgW').onclick=()=>{P.bg='#ffffff';paintBg()};
+$('bgK').onclick=()=>{P.bg='#000000';paintBg()};
+$('dP').onclick=async()=>{if(!await ask('ลบหน้านี้?','หน้า '+(curIdx()+1)+' และสิ่งที่วาดไว้จะหายไป','ลบ'))return;
+ const i=curIdx();pages.splice(i,1);P=null;if(!pages.length)blankPage();else showPage(Math.min(i,pages.length-1))};
+
+/* ---------- กล้อง (ถ่ายต่อเนื่องหลายภาพ) ---------- */
+let stream=null,facing='environment',shots=0;const vd=$('vd'),cam=$('cam');
+const stopStream=()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}};
+async function startStream(){stopStream();stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});vd.srcObject=stream}
+$('nC').onclick=async()=>{shots=0;$('cn').textContent='ถ่ายแล้ว 0 ภาพ';
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('fCam').click();return}
+ cam.classList.add('show');try{await startStream()}catch(e){cam.classList.remove('show');toast('เปิดกล้องสดไม่ได้ ใช้กล้องเครื่องแทน');$('fCam').click()}};
+$('cFl').onclick=async()=>{facing=facing==='environment'?'user':'environment';try{await startStream()}catch(e){toast('สลับกล้องไม่ได้')}};
+$('cX').onclick=()=>{stopStream();cam.classList.remove('show');if(shots)toast('เพิ่ม '+shots+' ภาพแล้ว')};
+$('sh').onclick=async()=>{if(!vd.videoWidth)return;const k=Math.min(1,1920/Math.max(vd.videoWidth,vd.videoHeight)),o=document.createElement('canvas');
+ o.width=Math.round(vd.videoWidth*k);o.height=Math.round(vd.videoHeight*k);o.getContext('2d').drawImage(vd,0,0,o.width,o.height);
+ const f=$('fl');f.style.opacity=.8;setTimeout(()=>f.style.opacity=0,120);
+ await imgPage(o.toDataURL('image/jpeg',.9));shots++;$('cn').textContent='ถ่ายแล้ว '+shots+' ภาพ'};
+
+/* ---------- แถบเครื่องมือ ---------- */
+const bPen=$('bPen'),bEr=$('bEr');
+function sync(){cv.style.pointerEvents=st.pen?'auto':'none';cv.style.cursor=st.pen?'crosshair':'default';stg.classList.toggle('pm',st.pen);
+ bPen.classList.toggle('on',st.pen&&!st.eraser);bEr.classList.toggle('on',st.pen&&st.eraser);bPen.textContent=(st.pen&&!st.eraser)?'✏️ กำลังวาด':'✏️ วาด';if(st.pen)select(null)}
+bPen.onclick=()=>{st.eraser=false;st.pen=!st.pen;sync()};
+bEr.onclick=()=>{if(st.pen&&st.eraser){st.pen=false;st.eraser=false}else{st.pen=true;st.eraser=true;toast('แตะที่เส้นเพื่อลบทั้งเส้น')}sync()};
+$('bTx').onclick=()=>{st.pen=false;st.eraser=false;sync();
+ const fx=(c.clientWidth/2-view.tx)/(bw*view.z),fy=(c.clientHeight/2-view.ty)/(bh*view.z);
+ const it={k:'t',id:'t'+(++uid),text:'ข้อความ',x:clamp(fx-.1,0,.8),y:clamp(fy-.03,0,.9),f:.045,col:st.color};snap();items.push(it);mkBox(it);select(it.id);startEdit(it.id)};
+document.querySelectorAll('.col').forEach(b=>b.onclick=()=>{document.querySelectorAll('.col').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');st.color=b.dataset.c;
+ if(st.sel)setProps(st.sel,{col:st.color});else{st.eraser=false;st.pen=true;sync()}});
+document.querySelectorAll('.sz').forEach(b=>b.onclick=()=>{document.querySelectorAll('.sz').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');st.size=+b.dataset.s;st.pen=true;st.eraser=false;sync()});
+$('tM').onclick=()=>{const i=getItem(st.sel);if(i)setProps(i.id,{f:clamp(i.f*.9,.012,.4)})};
+$('tP').onclick=()=>{const i=getItem(st.sel);if(i)setProps(i.id,{f:clamp(i.f*1.1,.012,.4)})};
+$('tE').onclick=()=>{if(st.sel)startEdit(st.sel)};
+$('tD').onclick=()=>{if(st.sel)removeText(st.sel)};
+$('tC').onclick=()=>{const s=getItem(st.sel);if(!s)return;const it=Object.assign({},s,{id:'t'+(++uid),x:clamp(s.x+.03,0,.9),y:clamp(s.y+.05,0,.95)});snap();items.push(it);mkBox(it);select(it.id);toast('คัดลอกแล้ว')};
+$('bUn').onclick=()=>{if(!hist.length){toast('ไม่มีอะไรให้ย้อนกลับ');return}if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();items=hist.pop();select(null);redraw();renderTexts()};
+$('bCl').onclick=async()=>{if(!items.length){toast('ยังไม่มีเส้นหรือข้อความ');return}if(await ask('ล้างหน้านี้?','เส้นและข้อความทั้งหมดในหน้านี้จะถูกลบ','ล้างทั้งหมด')){snap();items=[];select(null);redraw();renderTexts()}};
+addEventListener('keydown',e=>{if((e.key==='Delete'||e.key==='Backspace')&&st.sel&&!(document.activeElement&&document.activeElement.isContentEditable))removeText(st.sel)});
+
+/* ---------- บันทึกรูป ---------- */
+function renderPage(p){const o=document.createElement('canvas');o.width=p.w;o.height=p.h;const x=o.getContext('2d');x.fillStyle=p.bg;x.fillRect(0,0,o.width,o.height);if(p.img)x.drawImage(p.img,0,0,p.w,p.h);strokes(x,p.items);
+ p.items.forEach(it=>{if(it.k!=='t')return;const fs=it.f*o.width;x.font='600 '+fs+'px sans-serif';x.fillStyle=it.col;x.textBaseline='top';
+  String(it.text).split('\n').forEach((l,i)=>x.fillText(l,it.x*o.width,it.y*o.height+i*1.25*fs+.125*fs))});return o}
+const dl=(o,n)=>new Promise(r=>o.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);r()},'image/jpeg',.92));
+const flush=()=>{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();P.items=items;P.hist=hist};
+$('sv').onclick=async()=>{flush();await dl(renderPage(P),'หน้า'+(curIdx()+1)+'-'+Date.now()+'.jpg');toast('บันทึกรูปแล้ว')};
+$('svA').onclick=async()=>{flush();for(let i=0;i<pages.length;i++){await dl(renderPage(pages[i]),'หน้า'+(i+1)+'-'+Date.now()+'.jpg');await new Promise(r=>setTimeout(r,400))}toast('บันทึก '+pages.length+' หน้าแล้ว')};
+
+if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+blankPage();sync();
+</script></body></html>
